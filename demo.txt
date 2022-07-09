@@ -1,0 +1,108 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+
+//@version=5
+strategy("Chiến lược của tôi", overlay=true)
+
+i=input(defval=20, title = "dau vao 1")
+i2=input(defval=50, title = "dau vao 1")
+src=input(defval=close, title = "gia nguon")
+
+risk = input(title="risk per trade %", defval=0.5)
+rrr = input(defval=3.1, title ="ti le RR?")
+onlylong = input(defval = false)
+onlyshort = input(defval = false)
+
+// ema
+ema = ta.ema(src, i)
+plot(ema, title="EMA", color = color.red)
+ema2 = ta.ema(src, i2)
+plot(ema2, title="EMA2", color = color.green)
+
+// donchian
+lowerd = ta.lowest(i)
+upperd = ta.highest(i)
+pasisd = math.avg(upperd, lowerd)
+//plot(pasisd, "pasisd donchian", color=color.olive)
+//ud = plot(upperd, "Upper donchian", color=color.red)
+//ld = plot(lowerd, "Lower donchian", color=color.red)
+//fill(ud, ld, color=color.green, title="packgroud")
+
+
+//close low[1] open[2] high[3]
+//ema ema[1] ema[2] ema[3]
+
+//dieu kien vao lenh
+//longCondition = close > ema and low < ema and ema > ema2 
+//shortCondition = close < ema and high > ema and ema < ema2
+
+//plotshape(longCondition, style = shape.labelup, location = location.belowbar, color=color.green, size=size.small)
+//plotshape(shortCondition, style = shape.labeldown, location = location.abovebar, color=color.red, size=size.small)
+
+//lan luot 3 dieu kien
+//1 dau tien ema20 cat ema50
+//2 sau do tro lai ema20
+//3 sau do dong cua tren ema20 vao lenh
+condL1 = ta.crossover(ema, ema2) ? true : low[1] < ema[1] ? false : na
+condLong1 = fixnan(condL1)
+condL2 = condLong1 == true and low < ema ? true : close[1] > ema[1] ? false : na
+condLong2 = fixnan(condL2)
+longCondition = condLong2 == true and close > ema
+
+plotshape(condLong1, style = shape.circle, location = location.bottom, color=color.green, size=size.small)
+plotshape(condLong2, style = shape.xcross, location = location.bottom, color=color.green, size=size.small)
+plotshape(longCondition, style = shape.labelup, location = location.belowbar, color=color.green, size=size.small)
+
+condS1 = ta.crossover(ema2, ema) ? true : high[1] > ema[1] ? false : na
+condShort1 = fixnan(condS1)
+condS2 = condShort1 == true and high > ema ? true : close[1] < ema[1] ? false : na
+condShort2 = fixnan(condS2)
+shortCondition = condShort2 == true and close < ema
+
+plotshape(condShort1, style = shape.circle, location = location.top, color=color.red, size=size.small)
+plotshape(condShort2, style = shape.xcross, location = location.top, color=color.red, size=size.small)
+plotshape(shortCondition, style = shape.labelup, location = location.top, color=color.red, size=size.small)
+
+
+atr = ta.atr(24)
+
+stlong = longCondition and strategy.position_size <= 0 ? close - atr*2 : na
+stoplong = fixnan(stlong)
+
+stshort = shortCondition and strategy.position_size >= 0 ? close + atr*2 : na
+stopshort = fixnan(stshort)
+
+enlong = longCondition and strategy.position_size <= 0 ? close - 0.1*atr : na
+entrylong = fixnan(enlong)
+
+enshort = shortCondition and strategy.position_size >= 0 ? close + 0.5*atr : na
+entryshort = fixnan(enshort)
+
+amountL = risk/100 * strategy.initial_capital / (entrylong - stoplong)
+amountS = risk/100 * strategy.initial_capital / (stopshort - entryshort)
+
+TPlong = longCondition and strategy.position_size <= 0 ? entrylong + (entrylong - stoplong) * rrr : na
+takeprofitlong = fixnan(TPlong)
+
+TPshort = shortCondition and strategy.position_size >= 0 ? entryshort + (stopshort - entryshort) * rrr : na
+takeprofitshort = fixnan(TPshort)
+
+
+strategy.entry("Long", strategy.long, when = longCondition and not onlyshort, limit = entrylong, qty = amountL)
+//strategy.cancel("Long", when = cancellong)
+//strategy.close("Long", when = closelong)
+strategy.exit("exitL", "Long", stop = stoplong, limit=takeprofitlong)
+
+strategy.entry("Short", strategy.short, when = shortCondition and not onlylong, limit = entryshort, qty = amountS)
+//strategy.cancel("Short", when = cancelshort)
+//strategy.close("Short", when = closeshort)
+strategy.exit("exitS", "Short", stop = stopshort, limit=takeprofitshort)
+
+
+plot(strategy.position_size > 0 ? entrylong: na, linewidth = 2, style = plot.style_circles, color = color.orange, offset = -1)
+plot(strategy.position_size > 0 ? stoplong: na, linewidth = 2, style = plot.style_circles, color = color.red, offset = -1)
+plot(strategy.position_size > 0 ? takeprofitlong: na, linewidth = 2, style = plot.style_circles, color = color.green, offset = -1)
+plot(strategy.position_size < 0 ? entryshort: na, linewidth = 2, style = plot.style_circles, color = color.orange, offset = -1)
+plot(strategy.position_size < 0 ? stopshort: na, linewidth = 2, style = plot.style_circles, color = color.red, offset = -1)
+plot(strategy.position_size < 0 ? takeprofitshort: na, linewidth = 2, style = plot.style_circles, color = color.green, offset = -1)
+//
