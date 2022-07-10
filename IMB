@@ -1,0 +1,60 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © lequochieu284
+
+//@version=5
+strategy("chiec luoc IMB", overlay=true)
+
+risk = input(title="risk per trade %:", defval=0.5)
+rrr = input(defval=3.1, title ="ti le RR:")
+
+var tmpHigh = high
+var tmpLow = low
+var countHigh = 0
+var countLow = 0
+var checkBreakHigh = 0
+var checkBreakLow = 0
+var checkCountDown = 0
+var checkCountUp = 0
+
+// uptrend
+if high > tmpHigh
+    tmpHigh := high
+    if countLow >= 2 and checkCountDown >=2
+        checkBreakHigh := checkBreakHigh + 1
+        tmpLow := ta.lowest(low, countLow)
+        countLow := 0
+        checkBreakLow := 0
+        checkCountDown := 0
+else
+    countLow := countLow + 1
+    if close < open
+        checkCountDown := checkCountDown + 1
+
+
+// dow trend
+if low < tmpLow
+    tmpLow := low
+    if countHigh >= 2 and checkCountUp >=2
+        checkBreakLow := checkBreakLow + 1
+        tmpHigh := ta.highest(low, countHigh)
+        countHigh := 0
+        checkBreakHigh := 0
+        checkCountUp := 0
+else
+    countHigh := countHigh + 1
+    if close > open
+        checkCountUp := checkCountUp + 1
+
+
+//plotshape(checkBreakLow >= 2 ? true : na, style = shape.circle, location = location.top, color=color.red, size=size.tiny)
+//plotshape(checkBreakHigh >= 2 ? true : na, style = shape.circle, location = location.bottom, color=color.green, size=size.tiny)
+//plot(countHigh, title = "countHigh")
+//plot(countLow,  title = "countLow")
+plot(checkBreakHigh,  title = "checkBreakHigh", color = color.green)
+plot(checkBreakLow,  title = "checkBreakLow", color = color.red)
+
+plot(tmpHigh, linewidth = 2, style = plot.style_circles, color = color.green, offset = -1, title = "tmpHigh")
+plot(tmpLow, linewidth = 2, style = plot.style_circles, color = color.red, offset = -1, title = "tmpLow")
+
+
+
