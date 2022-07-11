@@ -25,6 +25,8 @@ if high > tmpHigh
         countLow := 0
         checkBreakLow := 0
         checkCountDown := 0
+    else
+        countLow := 0
 else
     countLow := countLow + 1
     if close < open
@@ -36,25 +38,33 @@ if low < tmpLow
     tmpLow := low
     if countHigh >= 2 and checkCountUp >=2
         checkBreakLow := checkBreakLow + 1
-        tmpHigh := ta.highest(low, countHigh)
+        tmpHigh := ta.highest(high, countHigh)
         countHigh := 0
         checkBreakHigh := 0
         checkCountUp := 0
+    else
+        countHigh := 0
 else
     countHigh := countHigh + 1
     if close > open
         checkCountUp := checkCountUp + 1
 
+if checkBreakLow >= 1
+    countLow := 0
+
+if checkBreakHigh >= 1
+    countHigh := 0
+
 
 //plotshape(checkBreakLow >= 2 ? true : na, style = shape.circle, location = location.top, color=color.red, size=size.tiny)
 //plotshape(checkBreakHigh >= 2 ? true : na, style = shape.circle, location = location.bottom, color=color.green, size=size.tiny)
-//plot(countHigh, title = "countHigh")
-//plot(countLow,  title = "countLow")
+plot(countHigh, title = "countHigh")
+plot(countLow,  title = "countLow")
 plot(checkBreakHigh,  title = "checkBreakHigh", color = color.green)
 plot(checkBreakLow,  title = "checkBreakLow", color = color.red)
 
-plot(tmpHigh, linewidth = 2, style = plot.style_circles, color = color.green, offset = -1, title = "tmpHigh")
-plot(tmpLow, linewidth = 2, style = plot.style_circles, color = color.red, offset = -1, title = "tmpLow")
+plot(tmpHigh, linewidth = 2, style = plot.style_circles, color = color.green, offset = 0, title = "tmpHigh")
+plot(tmpLow, linewidth = 2, style = plot.style_circles, color = color.red, offset = 0, title = "tmpLow")
 
 
 
