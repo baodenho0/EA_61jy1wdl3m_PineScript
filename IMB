@@ -7,64 +7,58 @@ strategy("chiec luoc IMB", overlay=true)
 risk = input(title="risk per trade %:", defval=0.5)
 rrr = input(defval=3.1, title ="ti le RR:")
 
-var tmpHigh = high
-var tmpLow = low
-var countHigh = 0
-var countLow = 0
+var highestHigh = 0.0
+var lowestLow = 999999.0
 var checkBreakHigh = 0
 var checkBreakLow = 0
 var checkCountDown = 0
 var checkCountUp = 0
+var tmpNewHigh = 0.0
+var tmpNewLow = 999999.0
 
 // uptrend
-if high > tmpHigh
-    tmpHigh := high
-    if countLow >= 2 and checkCountDown >=2
+if high > highestHigh
+    highestHigh := high
+    if checkCountDown >=2
         checkBreakHigh := checkBreakHigh + 1
-        tmpLow := ta.lowest(low, countLow)
-        countLow := 0
+        lowestLow := tmpNewLow
         checkBreakLow := 0
         checkCountDown := 0
-    else
-        countLow := 0
+        tmpNewLow := 999999
 else
-    countLow := countLow + 1
+    tmpNewLow := low < tmpNewLow ? low : tmpNewLow
     if close < open
         checkCountDown := checkCountDown + 1
 
 
 // dow trend
-if low < tmpLow
-    tmpLow := low
-    if countHigh >= 2 and checkCountUp >=2
+if low < lowestLow
+    lowestLow := low
+    if checkCountUp >=2
         checkBreakLow := checkBreakLow + 1
-        tmpHigh := ta.highest(high, countHigh)
-        countHigh := 0
+        highestHigh := tmpNewHigh
         checkBreakHigh := 0
         checkCountUp := 0
-    else
-        countHigh := 0
+        tmpNewHigh := 0
 else
-    countHigh := countHigh + 1
+    tmpNewHigh := high > tmpNewHigh ? high: tmpNewHigh
     if close > open
         checkCountUp := checkCountUp + 1
 
-if checkBreakLow >= 1
-    countLow := 0
-
-if checkBreakHigh >= 1
-    countHigh := 0
 
 
-//plotshape(checkBreakLow >= 2 ? true : na, style = shape.circle, location = location.top, color=color.red, size=size.tiny)
-//plotshape(checkBreakHigh >= 2 ? true : na, style = shape.circle, location = location.bottom, color=color.green, size=size.tiny)
-plot(countHigh, title = "countHigh")
-plot(countLow,  title = "countLow")
+//plotshape(checkBreakLow >= 2 ? checkBreakLow : na, style = shape.labeldown, color=color.red, size=size.tiny)
+//plotshape(checkBreakLow == 1 ? checkBreakLow : na, style = shape.labeldown, color=color.red, size=size.tiny)
+//plotshape(checkBreakHigh == 2 ? checkBreakHigh : na, style = shape.labelup, color=color.green, size=size.tiny)
+//plot(countHigh, title = "countHigh")
+//plot(countLow,  title = "countLow")
 plot(checkBreakHigh,  title = "checkBreakHigh", color = color.green)
 plot(checkBreakLow,  title = "checkBreakLow", color = color.red)
+//plot(tmpNewHigh, title = "tmpNewHigh", color = color.yellow)
+//plot(tmpNewLow,  title = "tmpNewLow",  color = color.gray)
 
-plot(tmpHigh, linewidth = 2, style = plot.style_circles, color = color.green, offset = 0, title = "tmpHigh")
-plot(tmpLow, linewidth = 2, style = plot.style_circles, color = color.red, offset = 0, title = "tmpLow")
+plot(highestHigh, linewidth = 2, style = plot.style_circles, color = color.green, offset = 0, title = "highestHigh")
+plot(lowestLow, linewidth = 2, style = plot.style_circles, color = color.red, offset = 0, title = "lowestLow")
 
 
 
