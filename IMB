@@ -4,8 +4,8 @@
 //@version=5
 strategy("chiec luoc IMB", overlay=true)
 
-risk = input(title="risk per trade %:", defval=0.5)
-rrr = input(defval=3.1, title ="ti le RR:")
+risk = input(title="risk %:", defval=0.5)
+rrr = input(defval=3.1, title ="RR:")
 
 var highestHigh = 0.0
 var lowestLow = 999999.0
@@ -15,16 +15,26 @@ var checkCountDown = 0
 var checkCountUp = 0
 var tmpNewHigh = 0.0
 var tmpNewLow = 999999.0
+var arrTradeAddress = array.new_float(0)
+var TP = 0.0
+var SL = 0.0
+var amount = 0.0
+cancelBUY = false
+cancelSELL = false
+var i = 0
 
 // uptrend
 if high > highestHigh
+    array.clear(arrTradeAddress)
     highestHigh := high
-    if checkCountDown >=2
+    if checkCountDown >= 2
         checkBreakHigh := checkBreakHigh + 1
         lowestLow := tmpNewLow
         checkBreakLow := 0
         checkCountDown := 0
         tmpNewLow := 999999
+        cancelBUY := true
+        
 else
     tmpNewLow := low < tmpNewLow ? low : tmpNewLow
     if close < open
@@ -33,6 +43,7 @@ else
 
 // dow trend
 if low < lowestLow
+    array.clear(arrTradeAddress)
     lowestLow := low
     if checkCountUp >=2
         checkBreakLow := checkBreakLow + 1
@@ -40,6 +51,7 @@ if low < lowestLow
         checkBreakHigh := 0
         checkCountUp := 0
         tmpNewHigh := 0
+        cancelSELL := true
 else
     tmpNewHigh := high > tmpNewHigh ? high: tmpNewHigh
     if close > open
@@ -61,4 +73,52 @@ plot(highestHigh, linewidth = 2, style = plot.style_circles, color = color.green
 plot(lowestLow, linewidth = 2, style = plot.style_circles, color = color.red, offset = 0, title = "lowestLow")
 
 
+if checkBreakHigh >= 2 and high < highestHigh and array.size(arrTradeAddress) == 0
+    i := 2
+    array.clear(arrTradeAddress)
+    TP := (high[1] + close[1]) / 2
+    while low[i] > lowestLow
+        if low[i - 2] > high[i]
+            array.push(arrTradeAddress, (low[i - 2] + high[i])/2 ) 
+        i := i + 1    
+            
+    
+if checkBreakLow >= 2 and low > lowestLow and array.size(arrTradeAddress) == 0
+    i := 2
+    array.clear(arrTradeAddress)
+    TP := (low[1] + close[1]) / 2
+    while high[i] < highestHigh
+        if high[i - 2] < low[i]
+            array.push(arrTradeAddress, (low[i - 2] + high[i])/2)
+        i := i + 1
+
+if array.size(arrTradeAddress) <= 2 and array.size(arrTradeAddress) > 0
+    if checkBreakHigh >= 2
+        for [index, entry] in arrTradeAddress
+            SL := entry - (entry - TP) * (1/rrr)
+            amount := risk/100 * strategy.initial_capital / (entry - SL)
+            strategy.entry("BUY" + str.tostring(index), strategy.long, limit = entry, qty = 10)
+            strategy.exit("exitBUY", "BUY" +  str.tostring(index), stop = SL, limit = TP)
+            
+            
+    if checkBreakLow >= 2
+        for [index, entry] in arrTradeAddress
+            SL := entry + (TP - entry) * (1/rrr)
+            amount := risk/100 * strategy.initial_capital / (SL - entry)
+            strategy.entry("SELL" +  str.tostring(index), strategy.short, limit = entry, qty = 10)
+            strategy.exit("exitSELL", "SELL" +  str.tostring(index), stop = SL, limit = TP)
+
+
+
+
+if cancelBUY
+    strategy.cancel("BUY0")
+    strategy.cancel("BUY1")
+    
+if cancelSELL    
+    strategy.cancel("SELL0")
+    strategy.cancel("SELL1")
+
+//
+//
 
