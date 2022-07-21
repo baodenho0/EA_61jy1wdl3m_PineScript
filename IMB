@@ -6,6 +6,8 @@ strategy("chiec luoc IMB", overlay=true)
 
 risk = input(title="risk %:", defval=0.5)
 rrr = input(defval=3.1, title ="RR:")
+onlyBuy = input(defval = false)
+onlySell = input(defval = false)
 
 var highestHigh = 0.0
 var lowestLow = 999999.0
@@ -18,14 +20,24 @@ var tmpNewLow = 999999.0
 var arrTradeAddress = array.new_float(0)
 var TP = 0.0
 var SL = 0.0
+var SL1 = 0.0
+var SL2 = 0.0
 var amount = 0.0
 cancelBUY = false
 cancelSELL = false
 var i = 0
+var allowTrade = true
+allowBuy = false
+allowSell = false
+entry1 = 0.0
+entry2 = 0.0
+amount1 = 0.0
+amount2 = 0.0
 
 // uptrend
 if high > highestHigh
     array.clear(arrTradeAddress)
+    allowTrade := true
     highestHigh := high
     if checkCountDown >= 2
         checkBreakHigh := checkBreakHigh + 1
@@ -43,6 +55,7 @@ else
 
 // dow trend
 if low < lowestLow
+    allowTrade := true
     array.clear(arrTradeAddress)
     lowestLow := low
     if checkCountUp >=2
@@ -92,33 +105,71 @@ if checkBreakLow >= 2 and low > lowestLow and array.size(arrTradeAddress) == 0
             array.push(arrTradeAddress, (low[i - 2] + high[i])/2)
         i := i + 1
 
-if array.size(arrTradeAddress) <= 2 and array.size(arrTradeAddress) > 0
+if array.size(arrTradeAddress) <= 2 and array.size(arrTradeAddress) > 0 and allowTrade
     if checkBreakHigh >= 2
-        for [index, entry] in arrTradeAddress
-            SL := entry - (entry - TP) * (1/rrr)
-            amount := risk/100 * strategy.initial_capital / (entry - SL)
-            strategy.entry("BUY" + str.tostring(index), strategy.long, limit = entry, qty = 10)
-            strategy.exit("exitBUY", "BUY" +  str.tostring(index), stop = SL, limit = TP)
-            
+        allowBuy := true
             
     if checkBreakLow >= 2
-        for [index, entry] in arrTradeAddress
-            SL := entry + (TP - entry) * (1/rrr)
-            amount := risk/100 * strategy.initial_capital / (SL - entry)
-            strategy.entry("SELL" +  str.tostring(index), strategy.short, limit = entry, qty = 10)
-            strategy.exit("exitSELL", "SELL" +  str.tostring(index), stop = SL, limit = TP)
+        allowSell := true
+        
 
+if allowBuy and not onlySell
+    if array.get(arrTradeAddress, 0)
+        entry1 := array.get(arrTradeAddress, 0)
+        SL1 := entry1 - (TP - entry1) * (1.0/rrr)
+        amount1 := risk/100 * strategy.initial_capital / (entry1 - SL1)
+        strategy.entry("BUY1", strategy.long, limit = entry1, qty = amount1)
+        // strategy.exit("exitBUY1", id = "BUY1", stop = SL1, limit = TP)
+        allowTrade := false
+        
+    if array.size(arrTradeAddress) == 2
+        entry2 := array.get(arrTradeAddress, 1)
+        SL2 := entry2 - (TP - entry2) * (1.0/rrr)
+        amount2 := risk/100 * strategy.initial_capital / (entry2 - SL2)
+        strategy.entry("BUY2", strategy.long, limit = entry2, qty = amount2)
+        // strategy.exit("exitBUY2", id = "BUY2", stop = SL2, limit = TP)
+        allowTrade := false
 
+if allowSell and not onlyBuy
+    if array.get(arrTradeAddress, 0)
+        entry1 := array.get(arrTradeAddress, 0)
+        SL1 := entry1 + (entry1 - TP) * (1.0/rrr)
+        amount1 := risk/100 * strategy.initial_capital / (SL1 - entry1)
+        strategy.entry("SELL1", strategy.short, limit = entry1, qty = amount1)
+        // strategy.exit("exitSELL1", id = "SELL1", stop = SL1, limit = TP)
+        allowTrade := false
+        
+    if array.size(arrTradeAddress) == 2
+        entry2 := array.get(arrTradeAddress, 1)
+        SL2 := entry2 + (entry2 - TP) * (1.0/rrr)
+        amount2 := risk/100 * strategy.initial_capital / (SL2 - entry2)
+        strategy.entry("SELL2", strategy.short, limit = entry2, qty = amount1)
+        // strategy.exit("exitSELL2", id = "SELL2", stop = SL2, limit = TP)
+        allowTrade := false
 
-
-if cancelBUY
-    strategy.cancel("BUY0")
-    strategy.cancel("BUY1")
+if checkBreakHigh >= 2
+    strategy.exit("exitBUY1", id = "BUY1", stop = SL1, limit = TP)
+    strategy.exit("exitBUY2", id = "BUY2", stop = SL2, limit = TP)
     
-if cancelSELL    
-    strategy.cancel("SELL0")
-    strategy.cancel("SELL1")
+  
+if checkBreakLow >= 2
+    strategy.exit("exitSELL1", id = "SELL1", stop = SL1, limit = TP)
+    strategy.exit("exitSELL2", id = "SELL2", stop = SL2, limit = TP)
 
-//
-//
+
+if cancelBUY or cancelSELL
+    strategy.cancel_all()
+    
+plot(entry1, title = "entry1")
+plot(SL1, title = "SL1")
+plot(entry2, title = "entry2")
+plot(SL2, title = "SL2")
+plot(TP, title = "TP")
+
+plot(array.size(arrTradeAddress), title="arrTradeAddress")
+//plot(strategy.position_size > 0 ? entry1: na, linewidth = 2, style = plot.style_circles, color = color.orange, offset = -1)
+//plot(strategy.position_size > 0 ? SL1: na, linewidth = 2, style=plot.style_linebr, color = color.red, offset = -1)
+//plot(strategy.position_size > 0 ? entry2: na, linewidth = 2, style = plot.style_circles, color = color.orange, offset = -1)
+//plot(strategy.position_size > 0 ? SL2: na, linewidth = 2, style=plot.style_linebr, color = color.red, offset = -1)
+
 
